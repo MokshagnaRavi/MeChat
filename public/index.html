@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-app.js";
+        import { getDatabase } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-database.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCJp5yA3BVvR-66R-aDyKVI3w12gNjrmrQ",
+            authDomain: "mechat-e3549.firebaseapp.com",
+            databaseURL: "https://mechat-e3549-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "mechat-e3549",
+            storageBucket: "mechat-e3549.appspot.com",
+            messagingSenderId: "898328856882",
+            appId: "1:898328856882:web:899b773c92586b110f6f2b",
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        
+        let username = "";
+        let currentRoom = "";
+
+        // Function to set username and join a room
+        window.setUsernameAndRoom = function() {
+            const usernameInput = document.getElementById('username');
+            username = usernameInput.value || "Anonymous"; // Default to Anonymous if not provided
+            
+            const roomInput = document.getElementById('room');
+            currentRoom = roomInput.value || "General"; // Default room
+            
+            document.getElementById('usernamePrompt').style.display = 'none'; // Hide prompt
+            document.getElementById('chat-container').style.display = 'flex'; // Show chat container
+            
+            socket.emit("join room", currentRoom); // Join the specified room
+            document.getElementById('input').focus(); // Focus on message input
+        }
+
+        // Function to send a message
+        window.sendMessage = function() {
+            const messageInput = document.getElementById("input");
+            const messageText = messageInput.value;
+
+            if (messageText) {
+                console.log(`Sending message: ${messageText} from ${username}`); // Debug log
+                socket.emit("chat message", { room: currentRoom, username, message: messageText }); // Send message with username and room
+                messageInput.value = ""; // Clear input field after sending
+            }
+        }
+
+        // Add event listener for Enter key to send messages
+        window.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && document.activeElement === document.getElementById('input')) {
+                event.preventDefault(); // Prevent default form submission
+                sendMessage(); // Call sendMessage function
+            }
+        });
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        #chat-container {
+            display: none; /* Initially hidden */
+            flex-direction: column; /* Stack children vertically */
+            width: 90%;
+            max-width: 800px; /* Increased width */
+            height: 80vh; /* Set height to 80% of viewport height */
+            margin: 20px auto;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        #usernamePrompt {
+            width: 90%;
+            max-width: 400px;
+            margin: 20px auto;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            text-align: center; /* Center the content */
+        }
+
+        input[type="text"], input[type="email"], input[type="password"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #4cae4c; /* Darker green on hover */
+        }
+
+        ul {
+          list-style-type: none; 
+          margin: 0; 
+          padding: 0; 
+          flex-grow: 1; /* Allow the list to grow and take available space */
+          overflow-y: auto; /* Allow scrolling */
+      }
+
+      li {
+          padding: 8px; 
+          margin-bottom: 5px; 
+          border-radius: 4px; 
+          color:#333; /* Text color */
+      }
+
+      .username {
+          font-weight: bold; /* Make usernames bold */
+      }
+
+      .timestamp {
+          font-size: small; /* Smaller font for timestamps */
+          color: gray; /* Gray color for timestamps */
+          margin-left: 5px; /* Space between message and timestamp */
+      }
+
+      #messages { 
+          margin-bottom : 20px ; 
+      }
+
+      .input-container {
+          display: flex; /* Use flexbox for input and button */
+          margin-top:auto ; /* Space above input */
+      }
+
+      #input {
+          flex-grow :1 ; /* Allow input to take available space */
+          margin-right :10px ; /* Space between input and button */
+      }
+    </style>
+</head>
+<body>
+
+<div id="usernamePrompt">
+    <h2>Enter Your Username</h2>
+    <input type="text" id="username" placeholder="Enter your username here..." required />
+    <input type="text" id="room" placeholder="Enter chat room name..." required />
+    <button onclick="setUsernameAndRoom()">Join Chat</button> <!-- Set username and join chat -->
+</div>
+
+<div id="chat-container">
+    <h2>Chat Application</h2>
+    <ul id="messages"></ul>
+    <div class="input-container">
+        <input id="input" autocomplete="off" placeholder="Type your message here..." required />
+        <button onclick="sendMessage()">Send</button> <!-- Send message button -->
+    </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+// Chat Functions
+const socket = io(); // Establish socket connection
+
+// Function to set username and join a room
+window.setUsernameAndRoom = function() {
+    const usernameInput = document.getElementById('username');
+    const roomInput = document.getElementById('room');
+
+    username = usernameInput.value || "Anonymous"; // Default to Anonymous if not provided
+    currentRoom = roomInput.value || "General"; // Default room
+
+    document.getElementById('usernamePrompt').style.display = 'none'; // Hide prompt
+    document.getElementById('chat-container').style.display = 'flex'; // Show chat container
+    
+    socket.emit("join room", currentRoom); // Join the specified room
+    
+    document.getElementById('input').focus(); // Focus on message input
+}
+
+// Receive messages from server
+socket.on("chat message", function(msg) {
+   const item = document.createElement("li");
+   item.innerHTML = `<span class="username">${msg.username}:</span> ${msg.message} <span class="timestamp">${msg.timestamp}</span>`; // Display user and message correctly with timestamp
+
+   document.getElementById("messages").appendChild(item);
+   const messagesContainer = document.getElementById("messages");
+   messagesContainer.scrollTop = messagesContainer.scrollHeight; // Scroll to bottom of messages
+
+   console.log(`Received message: ${msg.message} from ${msg.username}`); // Debug log
+});
+</script>
+
+</body>
+</html>
